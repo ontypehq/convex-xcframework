@@ -1,0 +1,54 @@
+name: Release Convex XCFramework
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create or update
+        required: false
+        default: v0.8.1-59081a707f3b
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build macOS slices
+    runs-on: macos-15
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Build artifact
+        run: ./scripts/build-macos.sh dist
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: convex-xcframework-macos
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          notes_file="$RUNNER_TEMP/release-notes.md"
+          {
+            echo "Prebuilt Convex macOS xcframework slices for OnType."
+            echo
+            echo "Verify checksums with the matching .sha256 asset."
+          } > "$notes_file"
+
+          if ! gh release view "$INPUT_TAG" >/dev/null 2>&1; then
+            gh release create "$INPUT_TAG" --title "$INPUT_TAG" --notes-file "$notes_file"
+          fi
+          gh release upload "$INPUT_TAG" dist/* --clobber
+
