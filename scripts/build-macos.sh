@@ -18,7 +18,7 @@ rm -rf "$work_dir"
 mkdir -p "$stage_dir" "$swift_pkg_dir" "$OUT_DIR"
 
 cat > "$swift_pkg_dir/Package.swift" <<SWIFT
-// swift-tools-version: 6.2
+// swift-tools-version: 6.1
 import PackageDescription
 
 let package = Package(
